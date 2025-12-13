@@ -87,9 +87,7 @@ s2 = 1;
 % w2 = rand(s2, s1) - 0.5;
 % b2 = rand(s2, 1) - 0.5;
 
-%=================================================
-%========== PREENTRENO, 20E6 EPOCAS ==============
-%=================================================
+
 w1=[-0.4565   -0.1929   -0.1947
     0.4512    0.8235   -0.0358
    -0.4624   -0.4156    0.0918
@@ -136,10 +134,11 @@ end
 %testing
 fprintf("\n--- PRUEBAS ---\n");
 o=1;
+
 for i=1:3
     carpeta=carpetas(i);
     o=1;
-    for k=8:17
+    for k=8:20
         % k-(tam/2)+1
         ruta=carpeta + "\" + num2str(k) + ".jpg";
         I = imread(ruta);
@@ -168,7 +167,7 @@ Areas=At;
 Perimetros=Pt;
 Circularidades = Ct;
 
-for i=1:10
+for i=1:12
     Pt_pantera =[Colores(1,i);Areas(1,i);Circularidades(1,i)];
     Pt_osos    =[Colores(2,i);Areas(2,i);Circularidades(2,i)];
     Pt_leon    =[Colores(3,i);Areas(3,i);Circularidades(3,i)];
@@ -188,7 +187,7 @@ for i=1:10
     else
         disp("Nosupe")
     end
-    if a2_osos >= .7 && a2_osos < 1.72
+    if a2_osos >= .7 && a2_osos < 1.5
         disp("oso")
     else
         disp("Nosupe")
@@ -207,18 +206,13 @@ end
 A_pantera
 A_osos
 A_leon
-disp("pantera")
+
 min(A_pantera)
 max(A_pantera)
-disp("===========")
-disp("oso")
 min(A_osos)
 max(A_osos)
-disp("===========")
-disp("leon")
 min(A_leon)
 max(A_leon)
-disp("===========")
 
 figure
 scatter3(Colores(1,:),Areas(1,:),Circularidades(1,:),'filled');hold on;
