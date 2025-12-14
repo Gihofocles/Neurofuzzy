@@ -81,27 +81,27 @@ R = 3;
 s1 = 10;
 s2 = 1;
 
-% w1 = rand(s1, R) - 0.5;
-% b1 = rand(s1, 1) - 0.5;
-% 
-% w2 = rand(s2, s1) - 0.5;
-% b2 = rand(s2, 1) - 0.5;
+w1 = rand(s1, R) - 0.5;
+b1 = rand(s1, 1) - 0.5;
 
-%=================================================
-%========== PREENTRENO, 20E6 EPOCAS ==============
-%=================================================
-w1=[-0.4565   -0.1929   -0.1947
-    0.4512    0.8235   -0.0358
-   -0.4624   -0.4156    0.0918
-   -0.4738   -0.1084   -0.2201
-    0.2007    8.9752  -76.7302];
-w2=[0.3910   -0.5815    0.3044    0.2530    1.6099];
-b1=[-0.5048
-    0.3892
-    0.0415
-    0.3579
-  -11.4626];
-b2= 0.6792;
+w2 = rand(s2, s1) - 0.5;
+b2 = rand(s2, 1) - 0.5;
+
+% %=================================================
+% %========== PREENTRENO, 20E6 EPOCAS ==============
+% %=================================================
+% w1=[-0.4565   -0.1929   -0.1947
+%     0.4512    0.8235   -0.0358
+%    -0.4624   -0.4156    0.0918
+%    -0.4738   -0.1084   -0.2201
+%     0.2007    8.9752  -76.7302];
+% w2=[0.3910   -0.5815    0.3044    0.2530    1.6099];
+% b1=[-0.5048
+%     0.3892
+%     0.0415
+%     0.3579
+%   -11.4626];
+% b2= 0.6792;
 
 for ep = 1:epochs
     E = 0;
@@ -229,3 +229,89 @@ w1
 w2
 b1
 b2
+
+
+
+%======================================
+%======================================
+%==============Individual test ========
+%======================================
+%======================================
+% clc
+disp("===================================")
+disp("===================================")
+disp("===================================")
+% Ruta de la imagen a evaluar
+ruta = "C:\Users\HP\Downloads\bebutest4.jpg";
+
+% Lectura y preprocesamiento
+I = imread(ruta);
+Igray = rgb2gray(I);
+Ibin = imbinarize(Igray);
+
+% ===== EXTRACCIÓN DE RASGOS =====
+
+% Color dominante
+pixels = reshape(I(repmat(~Ibin,[1 1 3])), [], 3);
+colorDom = mean(double(pixels));
+colorFeat = mean(colorDom);
+
+% Área normalizada
+area = sum(Ibin(:));
+areaNorm = area / numel(Ibin);
+
+% Perímetro normalizado
+per = sum(bwperim(Ibin),'all');
+perNorm = per / sqrt(area);
+
+% Circularidad
+circularidad = 4*pi*area / (per^2);
+
+% Vector de entrada a la NN
+Pt_test = [colorFeat; areaNorm; circularidad];
+
+% ===== RED NEURONAL =====
+a1 = logsig(w1 * Pt_test + b1);
+a2 = w2 * a1 + b2;
+
+% ===== DECISIÓN =====
+if a2 < 0.7
+    disp("pantera")
+elseif a2 >= 0.7 && a2 < 1.5
+    disp("oso")
+else
+    disp("leon")
+end
+disp("===================================")
+disp("===================================")
+disp("===================================")
+
+% i1=1;
+% i2=1;
+% i3=1;
+% 
+% for i=-50:5:120
+%     for j=-1:.01:1
+%         for h=-2:.1:2
+%             Pt_test = [i; j; h];
+%             a1 = logsig(w1 * Pt_test + b1);
+%             a2 = w2 * a1 + b2;
+%             if a2 < 0.7
+%                 ip(i1,:)=[i j h];
+%                 i1=i1+1;
+%             elseif a2 >= 0.7 && a2 < 1.5
+%                 io(i2,:)=[i j h];
+%                 i2=i2+1;
+%             else
+%                 il(i3,:)=[i j h];
+%                 i3=i3+1;
+%             end
+%         end
+%     end
+%     i
+% end
+% 
+% figure
+% scatter3(ip(:,1),ip(:,2),ip(:,3),'filled');hold on;
+% scatter3(io(:,1),io(:,2),io(:,3),'filled');
+% scatter3(il(:,1),il(:,2),il(:,3),'filled');
