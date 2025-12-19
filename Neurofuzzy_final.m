@@ -1,8 +1,8 @@
 clear; clc, close all;
 
-carpetas(1) = "C:\Users\HP\OneDrive\upiita\animales\Pantera";
-carpetas(2) = "C:\Users\HP\OneDrive\upiita\animales\Osos";
-carpetas(3) = "C:\Users\HP\OneDrive\upiita\animales\Leon";
+carpetas(1) = "C:\Users\super\OneDrive\upiita\animales\Pantera";
+carpetas(2) = "C:\Users\super\OneDrive\upiita\animales\Osos";
+carpetas(3) = "C:\Users\super\OneDrive\upiita\animales\Leon";
 % carpeta_out = fullfile(carpeta, 'filtradas');
 % if ~exist(carpeta_out, 'dir')
 %     mkdir(carpeta_out);
@@ -83,25 +83,9 @@ s2 = 1;
 
 w1 = rand(s1, R) - 0.5;
 b1 = rand(s1, 1) - 0.5;
-
 w2 = rand(s2, s1) - 0.5;
 b2 = rand(s2, 1) - 0.5;
 
-% %=================================================
-% %========== PREENTRENO, 20E6 EPOCAS ==============
-% %=================================================
-% w1=[-0.4565   -0.1929   -0.1947
-%     0.4512    0.8235   -0.0358
-%    -0.4624   -0.4156    0.0918
-%    -0.4738   -0.1084   -0.2201
-%     0.2007    8.9752  -76.7302];
-% w2=[0.3910   -0.5815    0.3044    0.2530    1.6099];
-% b1=[-0.5048
-%     0.3892
-%     0.0415
-%     0.3579
-%   -11.4626];
-% b2= 0.6792;
 
 for ep = 1:epochs
     E = 0;
@@ -242,7 +226,7 @@ disp("===================================")
 disp("===================================")
 disp("===================================")
 % Ruta de la imagen a evaluar
-ruta = "C:\Users\HP\Downloads\bebutest4.jpg";
+ruta = "C:\Users\super\OneDrive\upiita\animales\Osos\17.jpg";
 
 % Lectura y preprocesamiento
 I = imread(ruta);
