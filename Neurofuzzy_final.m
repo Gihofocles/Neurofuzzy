@@ -1,301 +1,134 @@
-clear; clc, close all;
+clear;clc;close all
 
 carpetas(1) = "C:\Users\super\OneDrive\upiita\animales\Pantera";
 carpetas(2) = "C:\Users\super\OneDrive\upiita\animales\Osos";
 carpetas(3) = "C:\Users\super\OneDrive\upiita\animales\Leon";
-% carpeta_out = fullfile(carpeta, 'filtradas');
-% if ~exist(carpeta_out, 'dir')
-%     mkdir(carpeta_out);
-% end
-tam=20;
-for i=1:3
-    carpeta=carpetas(i);
-    for k=1:tam/2
-        ruta=carpeta + "\" + num2str(k) + ".jpg";
+
+for i = 1:3
+    carpeta = carpetas(i);
+    for k = 1:24
+        ruta = carpeta + "\" + num2str(k) + ".jpg";
         I = imread(ruta);
         Igray = rgb2gray(I);
-        Ibin=imbinarize(Igray);
-        pixels = reshape(I(repmat(~Ibin,[1 1 3])), [], 3);
-        colorDom = mean(double(pixels));
-        Iu(:,k)=mean(colorDom);
+        Ibin = imbinarize(Igray);
+
+        Ihsv = rgb2hsv(I);
+        pixelsHSV = reshape(Ihsv(repmat(Ibin,[1 1 3])),[],3);
+
+        Hmean = mean(pixelsHSV(:,1));
+        Smean = mean(pixelsHSV(:,2));
+        Vmean = mean(pixelsHSV(:,3));
+
+        Iu(:,k) = [Hmean; Smean; Vmean];
+
         area = sum(Ibin(:));
-        areaNorm = area / numel(Ibin);
-        Au(:,k)=areaNorm;
+        Au(:,k) = area / numel(Ibin);
+
         per = sum(bwperim(Ibin),'all');
-        perNorm = per / sqrt(area);
-        Pu(:,k)=perNorm;
-        circularidad = 4*pi*area / (per^2);
-        Cu(:,k)=circularidad;
+        Pu(:,k) = per / sqrt(area);
+
+        Cu(:,k) = 4*pi*area/(per^2);
+
+        stats = regionprops(Ibin,'Area','Eccentricity');
+        [~,idx] = max([stats.Area]);
+        Ec(:,k) = stats(idx).Eccentricity;
     end
-    It(i,:)=Iu;  
-    At(i,:)=Au;
-    Ct(i,:)=Cu;
-    Pt(i,:)=Pu;
+    It{i} = Iu;
+    At{i} = Au;
+    Ct{i} = Cu;
+    Pt{i} = Pu;
+    Et{i} = Ec;
 end
-Colores=It;
-Areas=At;
-Perimetros=Pt;
-Circularidades = Ct;
 
-figure;
-% subplot(4,1,1);
-% plot(Perimetros');
-% title("Perimetros")
-% legend("Panteras","Osos","Leones")
-subplot(3,1,1);
-plot(Colores')
-title("Color representativo")
-legend("Panteras","Osos","Leones")
-subplot(3,1,2);
-plot(Areas')
-title("Areas")
-legend("Panteras","Osos","Leones")
-subplot(3,1,3);
-plot(Circularidades')
-title("Circularidad")
-legend("Panteras","Osos","Leones")
+P_pantera = [It{1}; At{1}; Ct{1}; Pt{1}; Et{1}];
+P_osos    = [It{2}; At{2}; Ct{2}; Pt{2}; Et{2}];
+P_leon    = [It{3}; At{3}; Ct{3}; Pt{3}; Et{3}];
 
-P_pantera=[Colores(1,:);
-            Areas(1,:);
-            Circularidades(1,:)];
-P_osos=[Colores(2,:);
-         Areas(2,:);
-         Circularidades(2,:)];
+P = [P_pantera P_osos P_leon];
 
-P_leon=[Colores(3,:);
-         Areas(3,:);
-         Circularidades(3,:)];
+mu = mean(P,2);
+sigma = std(P,0,2);
+P = (P - mu) ./ sigma;
 
-P=[P_pantera P_osos P_leon];
-
-T_pantera = zeros(1,size(P_pantera,2));
-T_osos = ones(1,size(P_osos,2));
-T_leon = 2*ones(1,size(P_leon,2));
-
+T_pantera = repmat([1;0;0],1,size(P_pantera,2));
+T_osos    = repmat([0;1;0],1,size(P_osos,2));
+T_leon    = repmat([0;0;1],1,size(P_leon,2));
 T = [T_pantera T_osos T_leon];
 
-epochs =2e3;
-alpha  = 0.0001;
+R = size(P,1);
+s1 = 25;
+s2 = 3;
 
-R = 3;
-s1 = 10;
-s2 = 1;
+w1 = rand(s1,R) - 0.5;
+b1 = rand(s1,1) - 0.5;
+w2 = rand(s2,s1) - 0.5;
+b2 = rand(s2,1) - 0.5;
 
-w1 = rand(s1, R) - 0.5;
-b1 = rand(s1, 1) - 0.5;
-w2 = rand(s2, s1) - 0.5;
-b2 = rand(s2, 1) - 0.5;
-
+epochs = 5e5;
+alpha = .1;
 
 for ep = 1:epochs
-    E = 0;
+    err = 0;
     for j = 1:size(P,2)
-
         p = P(:,j);
-        t = T(j);
+        t = T(:,j);
+
         a1 = logsig(w1*p + b1);
-        a2 = w2*a1 + b2;
+        a2 = logsig(w2*a1 + b2);
+
         e = t - a2;
-        E = E + e^2;
-        s2n = -2*e;
-        D1 = a1 .* (1 - a1);
-        s1n = (w2' * s2n) .* D1;
+        err = err + sum(e.^2);
+
+        s2n = -2 * e .* a2 .* (1 - a2);
+        s1n = (w2' * s2n) .* a1 .* (1 - a1);
+
         w2 = w2 - alpha * s2n * a1';
         b2 = b2 - alpha * s2n;
-
         w1 = w1 - alpha * s1n * p';
         b1 = b1 - alpha * s1n;
     end
-
-    if mod(ep,1000)==0
-         fprintf("Epoch %d - E: %.6f\n", ep, E);
-
-    end
-    if (E/size(P,2)) < 1e-4
-        fprintf("Entrenamiento detenido por MSE bajo.\n");
-        break
-    end
+    [ep/10000 err]
 end
 
-%testing
-fprintf("\n--- PRUEBAS ---\n");
-o=1;
-for i=1:3
-    carpeta=carpetas(i);
-    o=1;
-    for k=8:17
-        % k-(tam/2)+1
-        ruta=carpeta + "\" + num2str(k) + ".jpg";
-        I = imread(ruta);
-        Igray = rgb2gray(I);
-        Ibin=imbinarize(Igray);
-        pixels = reshape(I(repmat(~Ibin,[1 1 3])), [], 3);
-        colorDom = mean(double(pixels));
-        Iu(:,o)=mean(colorDom);
-        area = sum(Ibin(:));
-        areaNorm = area / numel(Ibin);
-        Au(:,o)=areaNorm;
-        per = sum(bwperim(Ibin),'all');
-        perNorm = per / sqrt(area);
-        Pu(:,o)=perNorm;
-        circularidad = 4*pi*area / (per^2);
-        Cu(:,o)=circularidad;
-        o=o+1;
-    end
-    It(i,:)=Iu;  
-    At(i,:)=Au;
-    Ct(i,:)=Cu;
-    Pt(i,:)=Pu;
-end
-Colores=It;
-Areas=At;
-Perimetros=Pt;
-Circularidades = Ct;
+ruta_test = "C:\Users\super\OneDrive\upiita\animales\Rinoceronte\14.jpg";
 
-for i=1:10
-    Pt_pantera =[Colores(1,i);Areas(1,i);Circularidades(1,i)];
-    Pt_osos    =[Colores(2,i);Areas(2,i);Circularidades(2,i)];
-    Pt_leon    =[Colores(3,i);Areas(3,i);Circularidades(3,i)];
-    a1_pantera = logsig(w1*Pt_pantera + b1);
-    % disp("Pantera")
-    a2_pantera = w2*a1_pantera + b2;
-    a1_osos = logsig(w1*Pt_osos + b1);
-    % disp("osos")
-    a2_osos = w2*a1_osos + b2;
-    a1_leon = logsig(w1*Pt_leon + b1);
-    % disp("leon")
-    a2_leon = w2*a1_leon + b2;
-    % disp("===========")
-    disp("===========")
-    if a2_pantera < .7
-        disp("pantera")
-    else
-        disp("Nosupe")
-    end
-    if a2_osos >= .7 && a2_osos < 1.72
-        disp("oso")
-    else
-        disp("Nosupe")
-    end
-    if a2_leon > 1.5
-        disp("leon")
-    else
-        disp("Nosupe")
-    end
-    disp("===========")
-    A_pantera(i)=a2_pantera;
-    A_osos(i)   =a2_osos;
-    A_leon(i)   =a2_leon;
-end
-
-A_pantera
-A_osos
-A_leon
-disp("pantera")
-min(A_pantera)
-max(A_pantera)
-disp("===========")
-disp("oso")
-min(A_osos)
-max(A_osos)
-disp("===========")
-disp("leon")
-min(A_leon)
-max(A_leon)
-disp("===========")
-
-figure
-scatter3(Colores(1,:),Areas(1,:),Circularidades(1,:),'filled');hold on;
-scatter3(Colores(2,:),Areas(2,:),Circularidades(2,:),'filled');
-scatter3(Colores(3,:),Areas(3,:),Circularidades(3,:),'filled');
-
-w1
-w2
-b1
-b2
-
-
-
-%======================================
-%======================================
-%==============Individual test ========
-%======================================
-%======================================
-% clc
-disp("===================================")
-disp("===================================")
-disp("===================================")
-% Ruta de la imagen a evaluar
-ruta = "C:\Users\super\OneDrive\upiita\animales\Osos\17.jpg";
-
-% Lectura y preprocesamiento
-I = imread(ruta);
+I = imread(ruta_test);
 Igray = rgb2gray(I);
 Ibin = imbinarize(Igray);
 
-% ===== EXTRACCIÓN DE RASGOS =====
+Ihsv = rgb2hsv(I);
+pixelsHSV = reshape(Ihsv(repmat(Ibin,[1 1 3])),[],3);
 
-% Color dominante
-pixels = reshape(I(repmat(~Ibin,[1 1 3])), [], 3);
-colorDom = mean(double(pixels));
-colorFeat = mean(colorDom);
+Hmean = mean(pixelsHSV(:,1));
+Smean = mean(pixelsHSV(:,2));
+Vmean = mean(pixelsHSV(:,3));
 
-% Área normalizada
 area = sum(Ibin(:));
 areaNorm = area / numel(Ibin);
 
-% Perímetro normalizado
 per = sum(bwperim(Ibin),'all');
 perNorm = per / sqrt(area);
 
-% Circularidad
-circularidad = 4*pi*area / (per^2);
+circularidad = 4*pi*area/(per^2);
 
-% Vector de entrada a la NN
-Pt_test = [colorFeat; areaNorm; circularidad];
+stats = regionprops(Ibin,'Area','Eccentricity');
+[~,idx] = max([stats.Area]);
+ecc = stats(idx).Eccentricity;
 
-% ===== RED NEURONAL =====
-a1 = logsig(w1 * Pt_test + b1);
-a2 = w2 * a1 + b2;
+Pt_test = [Hmean; Smean; Vmean; areaNorm; circularidad; perNorm; ecc];
+Pt_test = (Pt_test - mu) ./ sigma;
 
-% ===== DECISIÓN =====
-if a2 < 0.7
+a1 = logsig(w1*Pt_test + b1);
+a2 = logsig(w2*a1 + b2);
+
+[~,clase] = max(a2);
+
+if clase == 1
     disp("pantera")
-elseif a2 >= 0.7 && a2 < 1.5
+elseif clase == 2
     disp("oso")
-else
+elseif clase == 3
     disp("leon")
 end
-disp("===================================")
-disp("===================================")
-disp("===================================")
 
-% i1=1;
-% i2=1;
-% i3=1;
-% 
-% for i=-50:5:120
-%     for j=-1:.01:1
-%         for h=-2:.1:2
-%             Pt_test = [i; j; h];
-%             a1 = logsig(w1 * Pt_test + b1);
-%             a2 = w2 * a1 + b2;
-%             if a2 < 0.7
-%                 ip(i1,:)=[i j h];
-%                 i1=i1+1;
-%             elseif a2 >= 0.7 && a2 < 1.5
-%                 io(i2,:)=[i j h];
-%                 i2=i2+1;
-%             else
-%                 il(i3,:)=[i j h];
-%                 i3=i3+1;
-%             end
-%         end
-%     end
-%     i
-% end
-% 
-% figure
-% scatter3(ip(:,1),ip(:,2),ip(:,3),'filled');hold on;
-% scatter3(io(:,1),io(:,2),io(:,3),'filled');
-% scatter3(il(:,1),il(:,2),il(:,3),'filled');
+a2
