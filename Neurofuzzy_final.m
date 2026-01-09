@@ -11,24 +11,17 @@ for i = 1:3
         I = imread(ruta);
         Igray = rgb2gray(I);
         Ibin = imbinarize(Igray);
-
         Ihsv = rgb2hsv(I);
         pixelsHSV = reshape(Ihsv(repmat(Ibin,[1 1 3])),[],3);
-
-        Hmean = mean(pixelsHSV(:,1));
-        Smean = mean(pixelsHSV(:,2));
-        Vmean = mean(pixelsHSV(:,3));
-
+        Hmean = mean(pixelsHSV(:,1))*3;
+        Smean = mean(pixelsHSV(:,2))*3;
+        Vmean = mean(pixelsHSV(:,3))*3;
         Iu(:,k) = [Hmean; Smean; Vmean];
-
         area = sum(Ibin(:));
         Au(:,k) = area / numel(Ibin);
-
         per = sum(bwperim(Ibin),'all');
         Pu(:,k) = per / sqrt(area);
-
         Cu(:,k) = 4*pi*area/(per^2);
-
         stats = regionprops(Ibin,'Area','Eccentricity');
         [~,idx] = max([stats.Area]);
         Ec(:,k) = stats(idx).Eccentricity;
@@ -47,7 +40,7 @@ P_leon    = [It{3}; At{3}; Ct{3}; Pt{3}; Et{3}];
 P = [P_pantera P_osos P_leon];
 
 mu = mean(P,2);
-sigma = std(P,0,2);
+sigma = std(P,0,2) + 1e-6;
 P = (P - mu) ./ sigma;
 
 T_pantera = repmat([1;0;0],1,size(P_pantera,2));
@@ -55,8 +48,12 @@ T_osos    = repmat([0;1;0],1,size(P_osos,2));
 T_leon    = repmat([0;0;1],1,size(P_leon,2));
 T = [T_pantera T_osos T_leon];
 
+rep = 3;
+P = repmat(P,1,rep);
+T = repmat(T,1,rep);
+
 R = size(P,1);
-s1 = 25;
+s1 = 10;
 s2 = 3;
 
 w1 = rand(s1,R) - 0.5;
@@ -64,53 +61,43 @@ b1 = rand(s1,1) - 0.5;
 w2 = rand(s2,s1) - 0.5;
 b2 = rand(s2,1) - 0.5;
 
-epochs = 5e5;
-alpha = .1;
+epochs = 2e3;
+alpha = .05;
 
 for ep = 1:epochs
     err = 0;
     for j = 1:size(P,2)
         p = P(:,j);
         t = T(:,j);
-
         a1 = logsig(w1*p + b1);
         a2 = logsig(w2*a1 + b2);
-
         e = t - a2;
         err = err + sum(e.^2);
-
         s2n = -2 * e .* a2 .* (1 - a2);
         s1n = (w2' * s2n) .* a1 .* (1 - a1);
-
         w2 = w2 - alpha * s2n * a1';
         b2 = b2 - alpha * s2n;
         w1 = w1 - alpha * s1n * p';
         b1 = b1 - alpha * s1n;
     end
-    [ep/10000 err]
+    [ep/1000 err]
 end
 
-ruta_test = "C:\Users\super\OneDrive\upiita\animales\Rinoceronte\14.jpg";
+ruta_test = "C:\Users\super\OneDrive\upiita\animales\db\prueba\2.jpg";
 
 I = imread(ruta_test);
 Igray = rgb2gray(I);
 Ibin = imbinarize(Igray);
-
 Ihsv = rgb2hsv(I);
 pixelsHSV = reshape(Ihsv(repmat(Ibin,[1 1 3])),[],3);
-
-Hmean = mean(pixelsHSV(:,1));
-Smean = mean(pixelsHSV(:,2));
-Vmean = mean(pixelsHSV(:,3));
-
+Hmean = mean(pixelsHSV(:,1))*3;
+Smean = mean(pixelsHSV(:,2))*3;
+Vmean = mean(pixelsHSV(:,3))*3;
 area = sum(Ibin(:));
 areaNorm = area / numel(Ibin);
-
 per = sum(bwperim(Ibin),'all');
 perNorm = per / sqrt(area);
-
 circularidad = 4*pi*area/(per^2);
-
 stats = regionprops(Ibin,'Area','Eccentricity');
 [~,idx] = max([stats.Area]);
 ecc = stats(idx).Eccentricity;
@@ -120,7 +107,6 @@ Pt_test = (Pt_test - mu) ./ sigma;
 
 a1 = logsig(w1*Pt_test + b1);
 a2 = logsig(w2*a1 + b2);
-
 [~,clase] = max(a2);
 
 if clase == 1
@@ -130,5 +116,4 @@ elseif clase == 2
 elseif clase == 3
     disp("leon")
 end
-
 a2
